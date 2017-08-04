@@ -1,10 +1,9 @@
 package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.example.contract.BLContract
-import com.example.state.BLState
+import com.example.contract.TrancheContract
+import com.example.state.TrancheState
 import net.corda.core.contracts.Command
-import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.contracts.TransactionType
 import net.corda.core.flows.FlowLogic
@@ -28,7 +27,7 @@ object ShippingFlow {
          * checkpoint is reached in the code. See the 'progressTracker.currentStep' expressions within the call() function.
          */
         companion object {
-            object GENERATING_TRANSACTION : ProgressTracker.Step("Obtaining bl from vault.")
+            object GENERATING_TRANSACTION : ProgressTracker.Step("Obtaining tranche from vault.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying contract constraints.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with our private key.")
             object COLLECTING : ProgressTracker.Step("Collecting counter party signature.") {
@@ -58,18 +57,18 @@ object ShippingFlow {
 
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
-            val blStateAndRefs = serviceHub.vaultQueryService.queryBy<BLState>()
+            val blStateAndRefs = serviceHub.vaultQueryService.queryBy<TrancheState>()
                     .states.associateBy( {it.ref}, {it} )
 
-            val blStateAndRef = blStateAndRefs[stateRef] ?: throw IllegalArgumentException("BLState with StateRef $stateRef not found.")
+            val blStateAndRef = blStateAndRefs[stateRef] ?: throw IllegalArgumentException("TrancheState with StateRef $stateRef not found.")
             val inputBL = blStateAndRef.state.data
 
-            require(serviceHub.myInfo.legalIdentity == inputBL.owner) { "BL transfer can only be initiated by the BL owner." }
+            require(serviceHub.myInfo.legalIdentity == inputBL.owner) { "Tranche transfer can only be initiated by the Tranche owner." }
 
             val outputBL = inputBL.withNewOwner(inputBL.importerBank)
 
             // Generate an unsigned transaction.
-            val txCommand = Command(BLContract.Commands.Move(), listOf(inputBL.shippingCompany.owningKey, inputBL.importerBank.owningKey))
+            val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputBL.shippingCompany.owningKey, inputBL.importerBank.owningKey))
             val unsignedTx = TransactionType.General.Builder(notary).withItems(blStateAndRef, outputBL, txCommand)
 
             // Stage 2.

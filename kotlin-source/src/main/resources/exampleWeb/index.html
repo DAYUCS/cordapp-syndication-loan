@@ -95,21 +95,21 @@ COMING WEEKS WE'LL WRITE A TUTORIAL ON HOW BEST TO DO THIS.
         </div>
         <!--
         <table ng-show="demoApp.bls.length">
-            <tr ng-repeat="bl in demoApp.bls">
-                <td>{{ bl }}</td>
+            <tr ng-repeat="tranche in demoApp.bls">
+                <td>{{ tranche }}</td>
             </tr>
         </table>
         -->
 
-        <select ng-model="demoApp.selectedBL" ng-show="demoApp.bls.length" ng-options="BL.state.data.bl.referenceNumber for BL in demoApp.bls">
+        <select ng-model="demoApp.selectedBL" ng-show="demoApp.bls.length" ng-options="BL.state.data.tranche.referenceNumber for BL in demoApp.bls">
         </select>
         <div ng-show="demoApp.selectedBL" class="panel-body">
             <ul>
                 <li>Exporter: {{demoApp.selectedBL.state.data.exporter}}</li>
                 <li>Shipping Company: {{demoApp.selectedBL.state.data.shippingCompany}}</li>
                 <li>Importer Bank: {{demoApp.selectedBL.state.data.importerBank}}</li>
-                <li>Reference Number: {{demoApp.selectedBL.state.data.bl.referenceNumber}}</li>
-                <li>Packing List: {{demoApp.selectedBL.state.data.bl.packingList}}</li>
+                <li>Reference Number: {{demoApp.selectedBL.state.data.tranche.referenceNumber}}</li>
+                <li>Packing List: {{demoApp.selectedBL.state.data.tranche.packingList}}</li>
                 <li>Owner: {{demoApp.selectedBL.state.data.owner}}</li>
                 <li>Linear Id: {{demoApp.selectedBL.state.data.linearId.id}}</li>
                 <li>Notary: {{demoApp.selectedBL.state.notary}}</li>

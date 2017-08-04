@@ -2,8 +2,8 @@ package com.example.api
 
 import com.example.flow.ExampleFlow
 import com.example.flow.ShippingFlow
-import com.example.model.BL
-import com.example.state.BLState
+import com.example.model.Tranche
+import com.example.state.TrancheState
 import net.corda.client.rpc.notUsed
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
@@ -52,20 +52,20 @@ class ExampleApi(val services: CordaRPCOps) {
     }
 
     /**
-     * Displays all bl states that exist in the node's vault.
+     * Displays all tranche states that exist in the node's vault.
      */
     @GET
     @Path("bls")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getBLs(): List<StateAndRef<BLState>> {
-        val vaultStates = services.vaultQueryBy<BLState>()
+    fun getBLs(): List<StateAndRef<TrancheState>> {
+        val vaultStates = services.vaultQueryBy<TrancheState>()
         return vaultStates.states
     }
 
     /**
-     * Initiates a flow to agree an bl between two parties.
+     * Initiates a flow to agree an tranche between two parties.
      *
-     * Once the flow finishes it will have written the bl to ledger. Both the exporter and the counterParty will be able to
+     * Once the flow finishes it will have written the tranche to ledger. Both the exporter and the counterParty will be able to
      * see it when calling /api/example/bls on their respective nodes.
      *
      * This end-point takes a Party name parameter as part of the path. If the serving node can't find the other party
@@ -74,8 +74,8 @@ class ExampleApi(val services: CordaRPCOps) {
      * The flow is invoked asynchronously. It returns a future when the flow's call() method returns.
      */
     @PUT
-    @Path("{counterParty}/{importerBank}/issue-bl")
-    fun issueBL(bl: BL, @PathParam("counterParty") shippingCompanyName: X500Name,
+    @Path("{counterParty}/{importerBank}/issue-tranche")
+    fun issueBL(tranche: Tranche, @PathParam("counterParty") shippingCompanyName: X500Name,
                 @PathParam("importerBank") importerBankName: X500Name): Response {
         val shippingCommpany = services.partyFromX500Name(shippingCompanyName)
         if (shippingCommpany == null) {
@@ -87,8 +87,8 @@ class ExampleApi(val services: CordaRPCOps) {
             return Response.status(Response.Status.BAD_REQUEST).build()
         }
 
-        val state = BLState(
-                bl,
+        val state = TrancheState(
+                tranche,
                 services.nodeIdentity().legalIdentity,
                 shippingCommpany,
                 importerBank,
@@ -115,7 +115,7 @@ class ExampleApi(val services: CordaRPCOps) {
     }
 
     @PUT
-    @Path("transfer-bl")
+    @Path("transfer-tranche")
     fun transferBL(stateRef: StateRef): Response {
         val (status, msg) = try {
             val flowHandle = services

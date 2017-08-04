@@ -1,10 +1,10 @@
 package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.example.contract.BLContract
+import com.example.contract.TrancheContract
 import com.example.flow.ExampleFlow.Acceptor
 import com.example.flow.ExampleFlow.Initiator
-import com.example.state.BLState
+import com.example.state.TrancheState
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.TransactionType
 import net.corda.core.flows.FlowLogic
@@ -18,10 +18,10 @@ import net.corda.core.utilities.unwrap
 import net.corda.flows.FinalityFlow
 
 /**
- * This flow allows two parties (the [Initiator] and the [Acceptor]) to come to an agreement about the bl encapsulated
- * within an [BLState].
+ * This flow allows two parties (the [Initiator] and the [Acceptor]) to come to an agreement about the tranche encapsulated
+ * within an [TrancheState].
  *
- * In our simple example, the [Acceptor] always accepts a valid bl.
+ * In our simple example, the [Acceptor] always accepts a valid tranche.
  *
  * These flows have deliberately been implemented by using only the call() method for ease of understanding. In
  * practice we would recommend splitting up the various stages of the flow into sub-routines.
@@ -31,14 +31,14 @@ import net.corda.flows.FinalityFlow
 object ExampleFlow {
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(val blState: BLState,
+    class Initiator(val trancheState: TrancheState,
                     val counterParty: Party): FlowLogic<SignedTransaction>() {
         /**
          * The progress tracker checkpoints each stage of the flow and outputs the specified messages when each
          * checkpoint is reached in the code. See the 'progressTracker.currentStep' expressions within the call() function.
          */
         companion object {
-            object GENERATING_TRANSACTION : ProgressTracker.Step("Generating transaction based on new bl.")
+            object GENERATING_TRANSACTION : ProgressTracker.Step("Generating transaction based on new tranche.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying contract constraints.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with our private key.")
             object SENDING_TRANSACTION : ProgressTracker.Step("Sending proposed transaction to counterParty for review.")
@@ -64,8 +64,8 @@ object ExampleFlow {
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
             // Generate an unsigned transaction.
-            val txCommand = Command(BLContract.Commands.Issue(), listOf(blState.exporter.owningKey, blState.shippingCompany.owningKey))
-            val unsignedTx = TransactionType.General.Builder(notary).withItems(blState, txCommand)
+            val txCommand = Command(TrancheContract.Commands.Issue(), listOf(trancheState.exporter.owningKey, trancheState.shippingCompany.owningKey))
+            val unsignedTx = TransactionType.General.Builder(notary).withItems(trancheState, txCommand)
 
             // Stage 2.
             progressTracker.currentStep = VERIFYING_TRANSACTION
@@ -127,7 +127,7 @@ object ExampleFlow {
                 // a partially signed transaction.
                 val wireTx = partSignedTx.verifySignatures(publicKey, notaryPubKey)
                 // Run the contract's verify function.
-                // We want to be sure that the agreed-upon bl is valid under the rules of the contract.
+                // We want to be sure that the agreed-upon tranche is valid under the rules of the contract.
                 // To do this we need to run the contract's verify() function.
                 wireTx.toLedgerTransaction(serviceHub).verify()
                 // We've verified the signed transaction and return it.

@@ -1,7 +1,7 @@
 package com.example.flow
 
-import com.example.model.BL
-import com.example.state.BLState
+import com.example.model.Tranche
+import com.example.state.TrancheState
 import net.corda.core.contracts.TransactionVerificationException
 import net.corda.core.flows.FlowSessionException
 import net.corda.core.getOrThrow
@@ -12,7 +12,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class BLFlowTests {
+class TrancheFlowTests {
     lateinit var net: MockNetwork
     lateinit var a: MockNetwork.MockNode
     lateinit var b: MockNetwork.MockNode
@@ -37,8 +37,8 @@ class BLFlowTests {
 
     @Test
     fun `flow rejects invalid BLs`() {
-        val state = BLState(
-                BL("",""),
+        val state = TrancheState(
+                Tranche("",""),
                 a.info.legalIdentity,
                 b.info.legalIdentity,
                 a.info.legalIdentity,
@@ -47,14 +47,14 @@ class BLFlowTests {
         val future = a.services.startFlow(flow).resultFuture
         net.runNetwork()
 
-        // The BLContract specifies that bl's exporter and importerbank cannot be the same.
+        // The TrancheContract specifies that tranche's exporter and importerbank cannot be the same.
         assertFailsWith<TransactionVerificationException> {future.getOrThrow()}
     }
 
     @Test
     fun `flow rejects invalid BL states`() {
-        val state = BLState(
-                BL("",""),
+        val state = TrancheState(
+                Tranche("",""),
                 a.info.legalIdentity,
                 a.info.legalIdentity,
                 c.info.legalIdentity,
@@ -63,14 +63,14 @@ class BLFlowTests {
         val future = a.services.startFlow(flow).resultFuture
         net.runNetwork()
 
-        // The BLContract specifies that an bl's exporter and counterParty cannot be the same.
+        // The TrancheContract specifies that an tranche's exporter and counterParty cannot be the same.
         assertFailsWith<TransactionVerificationException> {future.getOrThrow()}
     }
 
     @Test
     fun `SignedTransaction returned by the flow is signed by the exporter`() {
-        val state = BLState(
-                BL("BL0001","abc 10"),
+        val state = TrancheState(
+                Tranche("BL0001","abc 10"),
                 a.info.legalIdentity,
                 b.info.legalIdentity,
                 c.info.legalIdentity,
@@ -85,8 +85,8 @@ class BLFlowTests {
 
     @Test
     fun `SignedTransaction returned by the flow is signed by the shipping company`() {
-        val state = BLState(
-                BL("",""),
+        val state = TrancheState(
+                Tranche("",""),
                 a.info.legalIdentity,
                 b.info.legalIdentity,
                 c.info.legalIdentity,
@@ -101,8 +101,8 @@ class BLFlowTests {
 
     @Test
     fun `flow rejects BLs that are not signed by the exporter`() {
-        val state = BLState(
-                BL("",""),
+        val state = TrancheState(
+                Tranche("",""),
                 c.info.legalIdentity,
                 b.info.legalIdentity,
                 a.info.legalIdentity,
@@ -116,8 +116,8 @@ class BLFlowTests {
 
     @Test
     fun `flow rejects BLs that are not signed by the shipping company`() {
-        val state = BLState(
-                BL("",""),
+        val state = TrancheState(
+                Tranche("",""),
                 a.info.legalIdentity,
                 c.info.legalIdentity,
                 b.info.legalIdentity,
@@ -131,8 +131,8 @@ class BLFlowTests {
 
     @Test
     fun `flow records a transaction in both parties' vaults`() {
-        val state = BLState(
-                BL("",""),
+        val state = TrancheState(
+                Tranche("",""),
                 a.info.legalIdentity,
                 b.info.legalIdentity,
                 c.info.legalIdentity,
@@ -150,8 +150,8 @@ class BLFlowTests {
 
     @Test
     fun `recorded transaction has no inputs and a single output, the input BL`() {
-        val inputState = BLState(
-                BL("",""),
+        val inputState = TrancheState(
+                Tranche("",""),
                 a.info.legalIdentity,
                 b.info.legalIdentity,
                 c.info.legalIdentity,
@@ -167,8 +167,8 @@ class BLFlowTests {
             val txOutputs = recordedTx!!.tx.outputs
             assert(txOutputs.size == 1)
 
-            val recordedState = txOutputs[0].data as BLState
-            assertEquals(recordedState.bl, inputState.bl)
+            val recordedState = txOutputs[0].data as TrancheState
+            assertEquals(recordedState.tranche, inputState.tranche)
             assertEquals(recordedState.exporter, inputState.exporter)
             assertEquals(recordedState.shippingCompany, inputState.shippingCompany)
             assertEquals(recordedState.importerBank, inputState.importerBank)

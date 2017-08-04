@@ -1,6 +1,6 @@
 package com.example.client
 
-import com.example.state.BLState
+import com.example.state.TrancheState
 import com.google.common.net.HostAndPort
 import net.corda.client.rpc.CordaRPCClient
 import net.corda.core.transactions.SignedTransaction
@@ -34,11 +34,11 @@ private class ExampleClientRPC {
         val (transactions: List<SignedTransaction>, futureTransactions: Observable<SignedTransaction>) =
                 proxy.verifiedTransactions()
 
-        // Log the 'placed' bl states and listen for new ones.
+        // Log the 'placed' tranche states and listen for new ones.
         futureTransactions.startWith(transactions).toBlocking().subscribe { transaction ->
             transaction.tx.outputs.forEach { output ->
-                val state = output.data as BLState
-                logger.info(state.bl.toString())
+                val state = output.data as TrancheState
+                logger.info(state.tranche.toString())
             }
         }
     }
