@@ -57,24 +57,13 @@ class ExampleApi(val services: CordaRPCOps) {
      * Displays all tranche states that exist in the node's vault.
      */
     @GET
-    @Path("bls")
+    @Path("SLs")
     @Produces(MediaType.APPLICATION_JSON)
     fun getBLs(): List<StateAndRef<TrancheState>> {
         val vaultStates = services.vaultQueryBy<TrancheState>()
         return vaultStates.states
     }
 
-    /**
-     * Initiates a flow to agree an tranche between two parties.
-     *
-     * Once the flow finishes it will have written the tranche to ledger. Both the exporter and the counterParty will be able to
-     * see it when calling /api/example/bls on their respective nodes.
-     *
-     * This end-point takes a Party name parameter as part of the path. If the serving node can't find the other party
-     * in its network map cache, it will return an HTTP bad request.
-     *
-     * The flow is invoked asynchronously. It returns a future when the flow's call() method returns.
-     */
     @PUT
     @Path("{currency}/{amount}/issue-tranche")
     fun issueBL(tranche: Tranche, @PathParam("currency") currency: String,

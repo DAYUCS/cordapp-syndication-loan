@@ -49,7 +49,7 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
     };
 
     demoApp.bls = [];
-    demoApp.getBLs = () => $http.get(apiBaseURL + "bls")
+    demoApp.getBLs = () => $http.get(apiBaseURL + "SLs")
         .then(function(result) {
                   demoApp.bls = result.data;
               });
