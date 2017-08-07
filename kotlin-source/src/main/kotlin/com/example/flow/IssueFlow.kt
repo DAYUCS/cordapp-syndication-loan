@@ -44,15 +44,12 @@ object IssueFlow {
             // Obtain a reference to the notary we want to use.
             val notary = serviceHub.networkMapCache.notaryNodes.single().notaryIdentity
 
-            // Obtain a reference to myself
-            val issuer = serviceHub.myInfo.legalIdentity
-
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
             // Generate an unsigned transaction.
             val txCommand = Command(TrancheContract.Commands.Issue(), listOf(trancheState.agent.owningKey))
             val unsignedTx = TransactionType.General.Builder(notary).withItems(trancheState, txCommand)
-            val signers = listOf(notary.owningKey, issuer.owningKey)
+            //val signers = listOf(trancheState.agent.owningKey, notary.owningKey)
 
             // Stage 2.
             progressTracker.currentStep = VERIFYING_TRANSACTION
@@ -61,7 +58,7 @@ object IssueFlow {
 
             // Stage 3.
             progressTracker.currentStep = SIGNING_TRANSACTION
-            val partSignedTx = serviceHub.signInitialTransaction(unsignedTx, signers)
+            val partSignedTx = serviceHub.signInitialTransaction(unsignedTx)
 
             // Stage 4.
             progressTracker.currentStep = FINALIZING_TRANSACTION
