@@ -1,18 +1,20 @@
 package com.example.api
 
-import com.example.flow.ExampleFlow
-import com.example.flow.ShippingFlow
+import com.example.flow.IssueFlow
+import com.example.flow.TransferFlow
 import com.example.model.Tranche
 import com.example.state.TrancheState
 import net.corda.client.rpc.notUsed
-import net.corda.core.contracts.StateAndRef
-import net.corda.core.contracts.StateRef
+import net.corda.core.contracts.*
 import net.corda.core.getOrThrow
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.messaging.vaultQueryBy
+import net.corda.core.serialization.OpaqueBytes
 import net.corda.core.utilities.loggerFor
 import org.bouncycastle.asn1.x500.X500Name
 import org.slf4j.Logger
+import java.math.BigDecimal
+import java.util.*
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
@@ -74,29 +76,24 @@ class ExampleApi(val services: CordaRPCOps) {
      * The flow is invoked asynchronously. It returns a future when the flow's call() method returns.
      */
     @PUT
-    @Path("{counterParty}/{importerBank}/issue-tranche")
-    fun issueBL(tranche: Tranche, @PathParam("counterParty") shippingCompanyName: X500Name,
-                @PathParam("importerBank") importerBankName: X500Name): Response {
-        val shippingCommpany = services.partyFromX500Name(shippingCompanyName)
-        if (shippingCommpany == null) {
-            return Response.status(Response.Status.BAD_REQUEST).build()
-        }
-
-        val importerBank = services.partyFromX500Name(importerBankName)
-        if (importerBank == null) {
-            return Response.status(Response.Status.BAD_REQUEST).build()
-        }
-
+    @Path("{currency}/{amount}/issue-tranche")
+    fun issueBL(tranche: Tranche, @PathParam("currency") currency: String,
+                @PathParam("amount") amount: String): Response {
+        val totalAmount = Amount<Issued<Currency>>(
+                amount.toLong(),
+                BigDecimal(amount),
+                Issued(PartyAndReference(services.nodeIdentity().legalIdentity, OpaqueBytes.of(0)), Currency.getInstance(currency))
+        )
         val state = TrancheState(
                 tranche,
+                totalAmount,
                 services.nodeIdentity().legalIdentity,
-                shippingCommpany,
-                importerBank,
-                shippingCommpany)
+                totalAmount,
+                services.nodeIdentity().legalIdentity)
 
         val (status, msg) = try {
             val flowHandle = services
-                    .startTrackedFlowDynamic(ExampleFlow.Initiator::class.java, state, shippingCommpany)
+                    .startTrackedFlowDynamic(IssueFlow.Initiator::class.java, state)
             flowHandle.progress.subscribe { println(">> $it") }
 
             // The line below blocks and waits for the future to resolve.
@@ -119,7 +116,7 @@ class ExampleApi(val services: CordaRPCOps) {
     fun transferBL(stateRef: StateRef): Response {
         val (status, msg) = try {
             val flowHandle = services
-                    .startTrackedFlowDynamic(ShippingFlow.Initiator::class.java, stateRef)
+                    .startTrackedFlowDynamic(TransferFlow.Initiator::class.java, stateRef)
             flowHandle.progress.subscribe { println(">> $it") }
 
             // The line below blocks and waits for the future to resolve.

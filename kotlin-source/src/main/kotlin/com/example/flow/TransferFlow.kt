@@ -18,7 +18,7 @@ import net.corda.flows.CollectSignaturesFlow
 import net.corda.flows.FinalityFlow
 import net.corda.flows.SignTransactionFlow
 
-object ShippingFlow {
+object TransferFlow {
     @InitiatingFlow
     @StartableByRPC
     class Initiator(val stateRef: StateRef): FlowLogic<SignedTransaction>() {
@@ -65,10 +65,12 @@ object ShippingFlow {
 
             require(serviceHub.myInfo.legalIdentity == inputBL.owner) { "Tranche transfer can only be initiated by the Tranche owner." }
 
-            val outputBL = inputBL.withNewOwner(inputBL.importerBank)
+            val outputBL = inputBL.withNewOwner(inputBL.owner)
+
+            var signers = listOf(inputBL.owner.owningKey, inputBL.agent.owningKey)
 
             // Generate an unsigned transaction.
-            val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputBL.shippingCompany.owningKey, inputBL.importerBank.owningKey))
+            val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputBL.agent.owningKey, inputBL.owner.owningKey))
             val unsignedTx = TransactionType.General.Builder(notary).withItems(blStateAndRef, outputBL, txCommand)
 
             // Stage 2.
@@ -78,7 +80,7 @@ object ShippingFlow {
 
             // Stage 3.
             progressTracker.currentStep = SIGNING_TRANSACTION
-            val partSignedTx = serviceHub.signInitialTransaction(unsignedTx)
+            val partSignedTx = serviceHub.signInitialTransaction(unsignedTx, signers)
 
             // Stage 4. Collect signature from shipping company and importer bank and add it to the transaction.
             // This also verifies the transaction and checks the signatures.
@@ -87,11 +89,11 @@ object ShippingFlow {
 
             // Stage 5. Notarise and record, the transaction in our vaults.
             progressTracker.currentStep = FINALISING
-            return subFlow(FinalityFlow(stx, setOf(inputBL.shippingCompany, inputBL.importerBank))).single()
+            return subFlow(FinalityFlow(stx)).single()
         }
     }
 
-    @InitiatedBy(ShippingFlow.Initiator::class)
+    @InitiatedBy(TransferFlow.Initiator::class)
     class Responder(val otherParty: Party) : FlowLogic<SignedTransaction>() {
         @Suspendable
         override fun call(): SignedTransaction {

@@ -60,7 +60,7 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
     demoApp.transfer = () => {
          const transferBLEndpoint =
              apiBaseURL +
-             "transfer-bl";
+             "transfer-tranche";
 
         //const ref = {
         //                txhash: demoApp.selectedBL.ref.txhash,
@@ -105,17 +105,23 @@ app.controller('ModalInstanceCtrl', function ($http, $location, $uibModalInstanc
 
             const bl = {
                 referenceNumber: modalInstance.form.referenceNumber,
-                packingList: modalInstance.form.packingList,
+                borrower: modalInstance.form.borrower,
+                interestRate: modalInstance.form.interestRate,
+                exchangeRate: modalInstance.form.exchangeRate,
+                irFixingDate: modalInstance.form.irFixingDate,
+                erFixingDate: modalInstance.form.erFixingDate,
+                startDate: modalInstance.form.startDate,
+                endDate: modalInstance.form.endDate,
             };
 
             $uibModalInstance.close();
 
             const createBLEndpoint =
                 apiBaseURL +
-                modalInstance.form.shippingCompany +
+                modalInstance.form.currency +
                 "/" +
-                modalInstance.form.importerBank +
-                "/issue-bl";
+                modalInstance.form.amount +
+                "/issue-tranche";
 
             // Create PO and handle success / fail responses.
             $http.put(createBLEndpoint, angular.toJson(bl)).then(
@@ -142,7 +148,8 @@ app.controller('ModalInstanceCtrl', function ($http, $location, $uibModalInstanc
 
     // Validate the BL.
     function invalidFormInput() {
-        return (modalInstance.form.referenceNumber === undefined) || (modalInstance.form.shippingCompany === undefined) || (modalInstance.form.importerBank === undefined);
+        return (modalInstance.form.referenceNumber === undefined) || (modalInstance.form.borrower === undefined)
+         || (modalInstance.form.currency === undefined) || (modalInstance.form.amount === undefined);
     }
 });
 
