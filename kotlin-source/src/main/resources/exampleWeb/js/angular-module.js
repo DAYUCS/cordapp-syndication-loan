@@ -112,6 +112,7 @@ app.controller('ModalInstanceCtrl', function ($http, $location, $uibModalInstanc
                 erFixingDate: modalInstance.form.erFixingDate,
                 startDate: modalInstance.form.startDate,
                 endDate: modalInstance.form.endDate,
+                txCurrency: modalInstance.form.txCurrency,
             };
 
             $uibModalInstance.close();

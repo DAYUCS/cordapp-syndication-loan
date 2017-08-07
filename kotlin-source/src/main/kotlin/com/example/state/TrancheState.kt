@@ -44,7 +44,8 @@ data class TrancheState(val tranche: Tranche,
                     irFixingDate = this.tranche.irFixingDate,
                     erFixingDate = this.tranche.erFixingDate,
                     startDate = this.tranche.startDate,
-                    endDate = this.tranche.endDate
+                    endDate = this.tranche.endDate,
+                    txCurrency = this.tranche.txCurrency
             )
             else -> throw IllegalArgumentException("Unrecognised schema $schema")
         }

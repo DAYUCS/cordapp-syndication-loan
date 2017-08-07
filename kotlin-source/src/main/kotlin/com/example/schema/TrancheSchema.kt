@@ -37,7 +37,10 @@ object TrancheSchemaV1 : MappedSchema(
             var startDate: String,
 
             @Column(name = "end_date")
-            var endDate: String
+            var endDate: String,
+
+            @Column(name = "tx_currency")
+            var txCurrency: String
 
     ) : PersistentState()
 }

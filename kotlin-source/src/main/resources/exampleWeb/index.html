@@ -81,6 +81,10 @@ COMING WEEKS WE'LL WRITE A TUTORIAL ON HOW BEST TO DO THIS.
                 <label for="amount" class="control-label">Amount:</label>
                 <input type="text" ng-model="modalInstance.form.amount" class="form-control" id="amount">
             </div>
+            <div class="form-group">
+                <label for="txCurrency" class="control-label">Transaction-Currency:</label>
+                <input type="text" ng-model="modalInstance.form.txCurrency" class="form-control" id="txCurrency">
+            </div>
             <div ng-show="modalInstance.formError" class="form-group">
                 <div class="alert alert-danger" role="alert">
                     <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
@@ -137,6 +141,7 @@ COMING WEEKS WE'LL WRITE A TUTORIAL ON HOW BEST TO DO THIS.
                 <li>End Date: {{demoApp.selectedBL.state.data.tranche.endDate}}</li>
                 <li>Total Amount: {{demoApp.selectedBL.state.data.totalAmount}}</li>
                 <li>Available Amount: {{demoApp.selectedBL.state.data.amount}}</li>
+                <li>Transaction Currency: {{demoApp.selectedBL.state.data.tranche.txCurrency}}</li>
                 <li>Agent BanK: {{demoApp.selectedBL.state.data.agent}}</li>
                 <li>Owner: {{demoApp.selectedBL.state.data.owner}}</li>
                 <li>Notary: {{demoApp.selectedBL.state.notary}}</li>
