@@ -25,6 +25,7 @@ open class TrancheContract : Contract {
 
                     // tranche-specific constraints.
                     "The tranche's total amount must be non-negative." using (out.totalAmount.quantity > 0)
+                    "The tranche's available amount must be non-negative." using (out.amount.quantity >= 0)
                 }
             }
             is Commands.Move -> {
@@ -37,6 +38,7 @@ open class TrancheContract : Contract {
                     val out2 = tx.outputs[1] as TrancheState
                     "Owner must not be changed for remained tranche." using (input.owner == out1.owner)
                     "Owner must be changed when transfer a tranche." using(input.owner != out2.owner)
+                    "The tranche's available amount must be non-negative." using (out1.amount.quantity >= 0 && out2.amount.quantity >=0)
                 }
             }
         }
