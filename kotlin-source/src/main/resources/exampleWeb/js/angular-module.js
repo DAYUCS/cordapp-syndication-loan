@@ -32,7 +32,7 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
 
     $http.get(apiBaseURL + "me").then((response) => demoApp.thisNode = response.data.me);
 
-    $http.get(apiBaseURL + "peers").then((response) => peers = response.data.peers);
+    $http.get(apiBaseURL + "peers").then((response) => demoApp.peers = response.data.peers);
 
     demoApp.openModal = () => {
         const modalInstance = $uibModal.open({
@@ -41,7 +41,7 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
             controllerAs: 'modalInstance',
             resolve: {
                 apiBaseURL: () => apiBaseURL,
-                peers: () => peers
+                peers: () => demoApp.peers
             }
         });
 
@@ -60,12 +60,10 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
     demoApp.transfer = () => {
          const transferBLEndpoint =
              apiBaseURL +
-             "transfer-tranche";
-
-        //const ref = {
-        //                txhash: demoApp.selectedBL.ref.txhash,
-        //                index: demoApp.selectedBL.ref.index,
-        //            };
+             demoApp.toBank +
+             "/" +
+             demoApp.transferAmount +
+             "/transfer-tranche";
 
         // Create PO and handle success / fail responses.
         $http.put(transferBLEndpoint, angular.toJson(demoApp.selectedBL.ref)).then(

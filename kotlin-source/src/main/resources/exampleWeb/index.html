@@ -149,6 +149,15 @@ COMING WEEKS WE'LL WRITE A TUTORIAL ON HOW BEST TO DO THIS.
                 <li>Transaction Index: {{demoApp.selectedBL.ref.index}}</li>
             </ul>
             <div class="modal-footer">
+                <div class="form-group">
+                    <label for="toBank" class="control-label">To-Bank:</label>
+                    <select ng-model="demoApp.toBank" class="form-control" id="toBank" ng-options="peer as peer for peer in demoApp.peers">
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transferAmount" class="control-label">Transfer-Amount:</label>
+                    <input type="text" ng-model="demoApp.transferAmount" class="form-control" id="transferAmount">
+                </div>
                 <button ng-click="demoApp.transfer()" type="button" class="btn btn-primary">Transfer SL</button>
             </div>
         </div>

@@ -31,10 +31,12 @@ open class TrancheContract : Contract {
                 // Transfer verification logic.
                 requireThat {
                     "Only one input should be consumed when move a tranche." using (tx.inputs.size == 1)
-                    "Only one output state should be created." using (tx.outputs.size == 1)
+                    "Two output states should be created." using (tx.outputs.size == 2)
                     val input = tx.inputs.single() as TrancheState
-                    val out = tx.outputs.single() as TrancheState
-                    "Owner must be changed when move a tranche." using(input.owner != out.owner)
+                    val out1 = tx.outputs[0] as TrancheState
+                    val out2 = tx.outputs[1] as TrancheState
+                    "Owner must not be changed for remained tranche." using (input.owner == out1.owner)
+                    "Owner must be changed when transfer a tranche." using(input.owner != out2.owner)
                 }
             }
         }

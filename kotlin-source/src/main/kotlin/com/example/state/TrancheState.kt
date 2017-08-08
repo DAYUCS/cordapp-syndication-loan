@@ -9,12 +9,13 @@ import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 import net.corda.core.crypto.keys
+import net.corda.core.identity.Party
 import java.security.PublicKey
 import java.util.*
 
 data class TrancheState(val tranche: Tranche,
                         val totalAmount: Amount<Issued<Currency>>,
-                        val agent: AbstractParty,
+                        val agent: Party,
                         override val amount: Amount<Issued<Currency>>,
                         override val owner: AbstractParty
 ) : FungibleAsset<Currency>, QueryableState {

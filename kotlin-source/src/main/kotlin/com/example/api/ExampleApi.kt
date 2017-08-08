@@ -101,11 +101,13 @@ class ExampleApi(val services: CordaRPCOps) {
     }
 
     @PUT
-    @Path("transfer-tranche")
-    fun transferBL(stateRef: StateRef): Response {
+    @Path("{bank}/{amount}/transfer-tranche")
+    fun transferBL(stateRef: StateRef, @PathParam("bank") bank: X500Name,
+                   @PathParam("amount") amount: String): Response {
+        val toBank = services.partyFromX500Name(bank)
         val (status, msg) = try {
             val flowHandle = services
-                    .startTrackedFlowDynamic(TransferFlow.Initiator::class.java, stateRef)
+                    .startTrackedFlowDynamic(TransferFlow.Initiator::class.java, stateRef, toBank, amount)
             flowHandle.progress.subscribe { println(">> $it") }
 
             // The line below blocks and waits for the future to resolve.
