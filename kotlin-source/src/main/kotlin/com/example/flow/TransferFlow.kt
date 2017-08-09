@@ -4,17 +4,11 @@ import co.paralleluniverse.fibers.Suspendable
 import com.example.contract.TrancheContract
 import com.example.state.TrancheState
 import net.corda.core.contracts.*
-import net.corda.core.flows.FlowLogic
-import net.corda.core.flows.InitiatedBy
-import net.corda.core.flows.InitiatingFlow
-import net.corda.core.flows.StartableByRPC
+import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.ProgressTracker
-import net.corda.flows.CollectSignaturesFlow
-import net.corda.flows.FinalityFlow
-import net.corda.flows.SignTransactionFlow
 import java.math.BigDecimal
 
 object TransferFlow {

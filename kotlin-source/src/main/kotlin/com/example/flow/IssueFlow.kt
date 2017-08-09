@@ -5,12 +5,12 @@ import com.example.contract.TrancheContract
 import com.example.state.TrancheState
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.TransactionType
+import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.ProgressTracker
-import net.corda.flows.FinalityFlow
 
 object IssueFlow {
     @InitiatingFlow
