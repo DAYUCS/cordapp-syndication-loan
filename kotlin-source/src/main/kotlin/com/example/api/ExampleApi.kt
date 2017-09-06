@@ -3,6 +3,7 @@ package com.example.api
 import com.example.flow.IssueFlow
 import com.example.flow.TransferFlow
 import com.example.model.Tranche
+import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
 import net.corda.client.rpc.notUsed
 import net.corda.core.contracts.*
@@ -14,7 +15,7 @@ import net.corda.core.utilities.loggerFor
 import org.bouncycastle.asn1.x500.X500Name
 import org.slf4j.Logger
 import java.math.BigDecimal
-import java.util.*
+import java.util.Currency
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
@@ -64,6 +65,17 @@ class ExampleApi(val services: CordaRPCOps) {
         return vaultStates.states
     }
 
+    /**
+     * Displays all trancheBalance states that exist in the node's vault.
+     */
+    @GET
+    @Path("SLBALs")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getBLBALs(): List<StateAndRef<TrancheBalanceState>> {
+        val vaultStates = services.vaultQueryBy<TrancheBalanceState>()
+        return vaultStates.states
+    }
+
     @PUT
     @Path("{currency}/{amount}/issue-tranche")
     fun issueBL(tranche: Tranche, @PathParam("currency") currency: String,
@@ -73,16 +85,23 @@ class ExampleApi(val services: CordaRPCOps) {
                 BigDecimal(amount),
                 Issued(PartyAndReference(services.nodeIdentity().legalIdentity, OpaqueBytes.of(0)), Currency.getInstance(currency))
         )
-        val state = TrancheState(
+        val trancheState = TrancheState(
                 tranche,
                 totalAmount,
                 services.nodeIdentity().legalIdentity,
                 totalAmount,
                 services.nodeIdentity().legalIdentity)
 
+        val trancheBalanceState = TrancheBalanceState(
+                tranche,
+                totalAmount,
+                services.nodeIdentity().legalIdentity,
+                services.nodeIdentity().legalIdentity
+                )
+
         val (status, msg) = try {
             val flowHandle = services
-                    .startTrackedFlowDynamic(IssueFlow.Initiator::class.java, state)
+                    .startTrackedFlowDynamic(IssueFlow.Initiator::class.java, trancheState, trancheBalanceState)
             flowHandle.progress.subscribe { println(">> $it") }
 
             // The line below blocks and waits for the future to resolve.

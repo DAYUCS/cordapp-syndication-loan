@@ -1,7 +1,9 @@
 package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
+import com.example.contract.TrancheBalanceContract
 import com.example.contract.TrancheContract
+import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.TransactionType
@@ -15,7 +17,7 @@ import net.corda.core.utilities.ProgressTracker
 object IssueFlow {
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(val trancheState: TrancheState) : FlowLogic<SignedTransaction>() {
+    class Initiator(val trancheState: TrancheState, val trancheBalanceState: TrancheBalanceState) : FlowLogic<SignedTransaction>() {
         /**
          * The progress tracker checkpoints each stage of the flow and outputs the specified messages when each
          * checkpoint is reached in the code. See the 'progressTracker.currentStep' expressions within the call() function.
@@ -48,7 +50,8 @@ object IssueFlow {
             progressTracker.currentStep = GENERATING_TRANSACTION
             // Generate an unsigned transaction.
             val txCommand = Command(TrancheContract.Commands.Issue(), listOf(trancheState.agent.owningKey))
-            val unsignedTx = TransactionType.General.Builder(notary).withItems(trancheState, txCommand)
+            val txCommandBalance = Command(TrancheBalanceContract.Commands.Issue(), listOf(trancheBalanceState.agent.owningKey))
+            val unsignedTx = TransactionType.General.Builder(notary).withItems(trancheState, txCommand, trancheBalanceState, txCommandBalance)
             //val signers = listOf(trancheState.agent.owningKey, notary.owningKey)
 
             // Stage 2.
