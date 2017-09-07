@@ -1,9 +1,14 @@
 package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
+import com.example.contract.TrancheBalanceContract
 import com.example.contract.TrancheContract
+import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
-import net.corda.core.contracts.*
+import net.corda.core.contracts.Amount
+import net.corda.core.contracts.Command
+import net.corda.core.contracts.StateRef
+import net.corda.core.contracts.TransactionType
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
@@ -54,17 +59,77 @@ object TransferFlow {
 
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
+
+            // Get TrancheState
             val blStateAndRefs = serviceHub.vaultQueryService.queryBy<TrancheState>()
                     .states.associateBy({ it.ref }, { it })
 
             val blStateAndRef = blStateAndRefs[stateRef] ?: throw IllegalArgumentException("TrancheState with StateRef $stateRef not found.")
             val inputBL = blStateAndRef.state.data
+            val referenceNumber = inputBL.tranche.referenceNumber
 
+            require(serviceHub.myInfo.legalIdentity == inputBL.agent) { "Tranche transfer can only be initiated by the agent bank." }
+
+            // Get TrancheBalanceState
+            val blBalanceStateAndRefs = serviceHub.vaultQueryService.queryBy<TrancheBalanceState>()
+                    .states.associateBy({ it.state.data.tranche.referenceNumber }, { it })
+                    .filterKeys { it.contentEquals(referenceNumber) }
+
+            //var agentBalanceExist = false
+            var targetBalanceExist = false
+            for (item in blBalanceStateAndRefs) {
+                if (item.value.state.data.owner == newOwner) {
+                    builder.addInputState(item.value)
+                    targetBalanceExist = true
+                    val amt = item.value.state.data.balance.quantity.plus(moveAmount.toLong())
+                    val balance = Amount(
+                            amt,
+                            BigDecimal(amt.toString()),
+                            item.value.state.data.balance.token
+                    )
+                    val trancheBalanceState = TrancheBalanceState(
+                            item.value.state.data.tranche,
+                            balance,
+                            item.value.state.data.agent,
+                            item.value.state.data.owner
+                    )
+                    builder.addOutputState(trancheBalanceState)
+                }
+                if (item.value.state.data.owner == blStateAndRef.state.data.agent) {
+                    builder.addInputState(item.value)
+                    //agentBalanceExist = true
+                    val amt = item.value.state.data.balance.quantity.minus(moveAmount.toLong())
+                    val balance = Amount(
+                            amt,
+                            BigDecimal(amt.toString()),
+                            item.value.state.data.balance.token
+                    )
+                    val trancheBalanceState = TrancheBalanceState(
+                            item.value.state.data.tranche,
+                            balance,
+                            item.value.state.data.agent,
+                            item.value.state.data.owner
+                    )
+                    builder.addOutputState(trancheBalanceState)
+                }
+            }
+
+            // Calculate amount
             val transferAmount = Amount(
                     moveAmount.toLong(),
                     BigDecimal(moveAmount),
                     inputBL.totalAmount.token
             )
+
+            if (!targetBalanceExist) {
+                val trancheBalanceState = TrancheBalanceState(
+                        inputBL.tranche,
+                        transferAmount,
+                        inputBL.agent,
+                        newOwner
+                )
+                builder.addOutputState(trancheBalanceState)
+            }
 
             val amt = inputBL.amount.quantity.minus(moveAmount.toLong())
             val remainedAmount = Amount(
@@ -73,18 +138,16 @@ object TransferFlow {
                     inputBL.totalAmount.token
             )
 
-            require(serviceHub.myInfo.legalIdentity == inputBL.agent) { "Tranche transfer can only be initiated by the agent bank." }
-
             val remainedBL = inputBL.move(remainedAmount, inputBL.agent)
 
             val outputBL = inputBL.move(transferAmount, newOwner)
-            outputBL.participants.plus(inputBL.agent)
+            //outputBL.participants.plus(inputBL.agent)
 
-            // Generate an unsigned transaction.
             val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputBL.agent.owningKey, newOwner.owningKey))
-            //val unsignedTx = TransactionType.General.Builder(notary).withItems(blStateAndRef, outputBL, txCommand)
+            val txCommandBalance = Command(TrancheBalanceContract.Commands.Move(), listOf(inputBL.agent.owningKey, newOwner.owningKey))
             builder.addInputState(blStateAndRef)
             builder.addCommand(txCommand)
+            builder.addCommand(txCommandBalance)
             builder.addOutputState(remainedBL)
             builder.addOutputState(outputBL)
 

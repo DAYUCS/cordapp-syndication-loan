@@ -19,7 +19,7 @@ import java.util.*
 data class TrancheBalanceState(val tranche: Tranche,
                                val balance: Amount<Issued<Currency>>,
                                val agent: Party,
-                               val owner: AbstractParty,
+                               val owner: Party,
                                override val linearId: UniqueIdentifier = UniqueIdentifier()
 ) : LinearState, QueryableState {
 
