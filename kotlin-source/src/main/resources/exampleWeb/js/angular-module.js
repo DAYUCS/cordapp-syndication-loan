@@ -34,6 +34,8 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
 
     $http.get(apiBaseURL + "peers").then((response) => demoApp.peers = response.data.peers);
 
+    demoApp.currencies = ["USD", "EUR", "CNY", "HKD"];
+
     demoApp.openModal = () => {
         const modalInstance = $uibModal.open({
             templateUrl: 'demoAppModal.html',
