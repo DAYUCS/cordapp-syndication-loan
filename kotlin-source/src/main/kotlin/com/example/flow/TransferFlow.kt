@@ -14,8 +14,6 @@ import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.ProgressTracker
-import net.corda.core.utilities.loggerFor
-import org.slf4j.Logger
 import java.math.BigDecimal
 
 object TransferFlow {
@@ -46,7 +44,6 @@ object TransferFlow {
                     FINALISING
             )
 
-            private val logger: Logger = loggerFor<Initiator>()
         }
 
         override val progressTracker = tracker()
@@ -87,7 +84,7 @@ object TransferFlow {
             logger.info("Balance Records Number: ".plus(blBalanceStateAndRefs.size))
             logger.info("Target Bank:".plus(newOwner.owningKey))
             logger.info("Agent Bank:".plus(inputBL.agent.owningKey))
-            //var agentBalanceExist = false
+
             var targetBalanceExist = false
             for (item in blBalanceStateAndRefs) {
                 logger.info("Item Owner:".plus(item.value.state.data.owner.owningKey))
@@ -103,7 +100,6 @@ object TransferFlow {
                     builder.addOutputState(trancheBalanceState)
                 } else if (item.value.state.data.owner.owningKey == inputBL.agent.owningKey) {
                     builder.addInputState(item.value)
-                    //agentBalanceExist = true
                     val trancheBalanceState = TrancheBalanceState(
                             item.value.state.data.tranche,
                             item.value.state.data.balance.minus(movement),
@@ -127,7 +123,6 @@ object TransferFlow {
             val remainedBL = inputBL.move(inputBL.amount.minus(movement), inputBL.agent)
 
             val outputBL = inputBL.move(movement, newOwner)
-            //outputBL.participants.plus(inputBL.agent)
 
             val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputBL.agent.owningKey, newOwner.owningKey))
             val txCommandBalance = Command(TrancheBalanceContract.Commands.Move(), listOf(inputBL.agent.owningKey, newOwner.owningKey))
