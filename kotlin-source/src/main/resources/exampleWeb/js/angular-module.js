@@ -56,6 +56,14 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
 
     demoApp.getBLs();
 
+    demoApp.bals =[];
+    demoApp.getBALs = () => $http.get(apiBaseURL + "SLBALs")
+        .then(function (result) {
+            demoApp.bals = result.data;
+        })
+
+    demoApp.getBALs();
+
     // Transfer BL.
     demoApp.transfer = () => {
          const transferBLEndpoint =
