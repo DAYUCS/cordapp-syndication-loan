@@ -80,25 +80,33 @@ class ExampleApi(val services: CordaRPCOps) {
     @Path("{currency}/{amount}/issue-tranche")
     fun issueBL(tranche: Tranche, @PathParam("currency") currency: String,
                 @PathParam("amount") amount: String): Response {
+        //logger.info("Currency:".plus(currency))
+        //logger.info("Amount:".plus(amount))
+        //logger.info("Amount to Long:".plus(amount.toLong()))
+        //logger.info("Amount to BigDecimal".plus(BigDecimal(amount)))
         val totalAmount = Amount<Issued<Currency>>(
                 amount.toLong(),
-                BigDecimal(amount),
+                BigDecimal(100),
                 Issued(PartyAndReference(services.nodeIdentity().legalIdentity, OpaqueBytes.of(0)), Currency.getInstance(currency))
         )
+        //logger.info("Total Amount Quantity:".plus(totalAmount.quantity))
+        //logger.info("Total Amount Display Token Size:".plus(totalAmount.displayTokenSize))
         val trancheState = TrancheState(
                 tranche,
                 totalAmount,
                 services.nodeIdentity().legalIdentity,
                 totalAmount,
                 services.nodeIdentity().legalIdentity)
-
+        logger.info("Tranche Amount Quantity:".plus(trancheState.totalAmount.quantity))
+        logger.info("Tranche Amount Token Size:".plus(trancheState.totalAmount.displayTokenSize))
         val trancheBalanceState = TrancheBalanceState(
                 tranche,
                 totalAmount,
                 services.nodeIdentity().legalIdentity,
                 services.nodeIdentity().legalIdentity
                 )
-
+        logger.info("Tranche Balance Quantity:".plus(trancheBalanceState.balance.quantity))
+        logger.info("Tranche Balance Token Size:".plus(trancheBalanceState.balance.displayTokenSize))
         val (status, msg) = try {
             val flowHandle = services
                     .startTrackedFlowDynamic(IssueFlow.Initiator::class.java, trancheState, trancheBalanceState)
