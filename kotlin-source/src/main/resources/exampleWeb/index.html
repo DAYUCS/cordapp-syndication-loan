@@ -75,7 +75,7 @@ COMING WEEKS WE'LL WRITE A TUTORIAL ON HOW BEST TO DO THIS.
             </div>
             <div class="form-group">
                 <label for="currency" class="control-label">Currency:</label>
-                <select ng-model="modalInstance.form.currency" class="form-control" id="currency" ng-options="item for item in demoApp.currencies">
+                <select ng-model="modalInstance.form.currency" class="form-control" id="currency" ng-options="ccy as ccy for ccy in modalInstance.ccys">
                 </select>
             </div>
             <div class="form-group">
@@ -84,7 +84,7 @@ COMING WEEKS WE'LL WRITE A TUTORIAL ON HOW BEST TO DO THIS.
             </div>
             <div class="form-group">
                 <label for="txCurrency" class="control-label">Transaction-Currency:</label>
-                <select ng-model="modalInstance.form.txCurrency" class="form-control" id="txCurrency" ng-options="item for item in demoApp.currencies">
+                <select ng-model="modalInstance.form.txCurrency" class="form-control" id="txCurrency" ng-options="ccy as ccy for ccy in modalInstance.ccys">
                 </select>
             </div>
             <div ng-show="modalInstance.formError" class="form-group">

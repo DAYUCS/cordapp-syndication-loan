@@ -28,13 +28,11 @@ app.controller('DemoAppController', function($http, $location, $uibModal) {
 
     // We identify the node.
     const apiBaseURL = "/api/example/";
-    let peers = [];
+    //let peers = [];
 
     $http.get(apiBaseURL + "me").then((response) => demoApp.thisNode = response.data.me);
 
     $http.get(apiBaseURL + "peers").then((response) => demoApp.peers = response.data.peers);
-
-    demoApp.currencies = ["USD", "EUR", "CNY", "HKD"];
 
     demoApp.openModal = () => {
         const modalInstance = $uibModal.open({
@@ -95,6 +93,7 @@ app.controller('ModalInstanceCtrl', function ($http, $location, $uibModalInstanc
     modalInstance.form = {};
     modalInstance.formError = false;
     modalInstance.selectedBL = null;
+    modalInstance.ccys = ["USD", "EUR", "CNY", "HKD"];
 
     // Validate and create BL.
     modalInstance.create = () => {
