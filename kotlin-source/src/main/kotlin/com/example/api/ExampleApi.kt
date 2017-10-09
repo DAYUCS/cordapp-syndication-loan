@@ -5,14 +5,13 @@ import com.example.flow.TransferFlow
 import com.example.model.Tranche
 import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
-import net.corda.client.rpc.notUsed
 import net.corda.core.contracts.*
-import net.corda.core.getOrThrow
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.loggerFor
-import org.bouncycastle.asn1.x500.X500Name
+import net.corda.core.identity.CordaX500Name
+import net.corda.core.utilities.getOrThrow
 import org.slf4j.Logger
 import java.math.BigDecimal
 import java.util.Currency
@@ -20,12 +19,13 @@ import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
-val NOTARY_NAME = "CN=Controller,O=R3,L=London,C=UK"
+val NOTARY_NAME = "Controller"
+val NETWORK_MAP_NAME = "Network Map Service"
 
 // This API is accessible from /api/example. All paths specified below are relative to it.
 @Path("example")
 class ExampleApi(val services: CordaRPCOps) {
-    private val myLegalName: X500Name = services.nodeIdentity().legalIdentity.name
+    private val myLegalName: CordaX500Name = services.nodeInfo().legalIdentities.first().name
 
     companion object {
         private val logger: Logger = loggerFor<ExampleApi>()
@@ -46,12 +46,12 @@ class ExampleApi(val services: CordaRPCOps) {
     @GET
     @Path("peers")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getPeers(): Map<String, List<X500Name>> {
-        val (nodeInfo, nodeUpdates) = services.networkMapFeed()
-        nodeUpdates.notUsed()
+    fun getPeers(): Map<String, List<CordaX500Name>> {
+        val nodeInfo = services.networkMapSnapshot()
         return mapOf("peers" to nodeInfo
-                .map { it.legalIdentity.name }
-                .filter { it != myLegalName && it.toString() != NOTARY_NAME })
+                .map { it.legalIdentities.first().name }
+                //filter out myself, notary and eventual network map started by driver
+                .filter { it != myLegalName && it.organisation != NOTARY_NAME && it.organisation != NETWORK_MAP_NAME })
     }
 
     /**
@@ -87,23 +87,23 @@ class ExampleApi(val services: CordaRPCOps) {
         val totalAmount = Amount<Issued<Currency>>(
                 amount.toLong(),
                 BigDecimal(100),
-                Issued(PartyAndReference(services.nodeIdentity().legalIdentity, OpaqueBytes.of(0)), Currency.getInstance(currency))
+                Issued(PartyAndReference(services.nodeInfo().legalIdentities.first(), OpaqueBytes.of(0)), Currency.getInstance(currency))
         )
         //logger.info("Total Amount Quantity:".plus(totalAmount.quantity))
         //logger.info("Total Amount Display Token Size:".plus(totalAmount.displayTokenSize))
         val trancheState = TrancheState(
                 tranche,
                 totalAmount,
-                services.nodeIdentity().legalIdentity,
+                services.nodeInfo().legalIdentities.first(),
                 totalAmount,
-                services.nodeIdentity().legalIdentity)
+                services.nodeInfo().legalIdentities.first())
         logger.info("Tranche Amount Quantity:".plus(trancheState.totalAmount.quantity))
         logger.info("Tranche Amount Token Size:".plus(trancheState.totalAmount.displayTokenSize))
         val trancheBalanceState = TrancheBalanceState(
                 tranche,
                 totalAmount,
-                services.nodeIdentity().legalIdentity,
-                services.nodeIdentity().legalIdentity
+                services.nodeInfo().legalIdentities.first(),
+                services.nodeInfo().legalIdentities.first()
                 )
         logger.info("Tranche Balance Quantity:".plus(trancheBalanceState.balance.quantity))
         logger.info("Tranche Balance Token Size:".plus(trancheBalanceState.balance.displayTokenSize))
@@ -129,9 +129,10 @@ class ExampleApi(val services: CordaRPCOps) {
 
     @PUT
     @Path("{bank}/{amount}/transfer-tranche")
-    fun transferBL(stateRef: StateRef, @PathParam("bank") bank: X500Name,
+    fun transferBL(stateRef: StateRef, @PathParam("bank") bank: CordaX500Name,
                    @PathParam("amount") amount: String): Response {
-        val toBank = services.partyFromX500Name(bank)
+        val toBank = services.wellKnownPartyFromX500Name(bank) ?:
+                return Response.status(Response.Status.BAD_REQUEST).entity("Party named $bank cannot be found.\n").build()
         val (status, msg) = try {
             val flowHandle = services
                     .startTrackedFlowDynamic(TransferFlow.Initiator::class.java, stateRef, toBank, amount)

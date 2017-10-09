@@ -2,11 +2,10 @@ package com.example.client
 
 import com.example.state.TrancheState
 import net.corda.client.rpc.CordaRPCClient
-import net.corda.core.transactions.SignedTransaction
+import net.corda.core.contracts.StateAndRef
+import net.corda.core.utilities.NetworkHostAndPort
 import net.corda.core.utilities.loggerFor
-import net.corda.core.utilities.parseNetworkHostAndPort
 import org.slf4j.Logger
-import rx.Observable
 
 /**
  *  Demonstration of using the CordaRPCClient to connect to a Corda Node and
@@ -20,26 +19,24 @@ fun main(args: Array<String>) {
 private class ExampleClientRPC {
     companion object {
         val logger: Logger = loggerFor<ExampleClientRPC>()
+        private fun logState(state: StateAndRef<TrancheState>) = logger.info("{}", state.state.data)
     }
 
     fun main(args: Array<String>) {
         require(args.size == 1) { "Usage: ExampleClientRPC <node address>" }
-        val nodeAddress = args[0].parseNetworkHostAndPort()
+        val nodeAddress = NetworkHostAndPort.parse(args[0])
         val client = CordaRPCClient(nodeAddress)
 
         // Can be amended in the com.example.MainKt file.
         val proxy = client.start("user1", "test").proxy
 
         // Grab all signed transactions and all future signed transactions.
-        val (transactions: List<SignedTransaction>, futureTransactions: Observable<SignedTransaction>) =
-                proxy.verifiedTransactionsFeed()
+        val (snapshot, updates) = proxy.vaultTrack(TrancheState::class.java)
 
         // Log the 'placed' tranche states and listen for new ones.
-        futureTransactions.startWith(transactions).toBlocking().subscribe { transaction ->
-            transaction.tx.outputs.forEach { output ->
-                val state = output.data as TrancheState
-                logger.info(state.tranche.toString())
-            }
+        snapshot.states.forEach { logState(it) }
+        updates.toBlocking().subscribe { update ->
+            update.produced.forEach { logState(it) }
         }
     }
 }

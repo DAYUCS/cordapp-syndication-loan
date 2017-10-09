@@ -2,16 +2,19 @@ package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.example.contract.TrancheBalanceContract
+import com.example.contract.TrancheBalanceContract.Companion.TRANCHEBALANCE_CONTRACT_ID
 import com.example.contract.TrancheContract
+import com.example.contract.TrancheContract.Companion.TRANCHE_CONTRACT_ID
 import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
 import net.corda.core.contracts.Command
-import net.corda.core.contracts.TransactionType
+import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.FinalityFlow
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.transactions.SignedTransaction
+import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 
 object IssueFlow {
@@ -44,28 +47,29 @@ object IssueFlow {
         @Suspendable
         override fun call(): SignedTransaction {
             // Obtain a reference to the notary we want to use.
-            val notary = serviceHub.networkMapCache.notaryNodes.single().notaryIdentity
+            val notary = serviceHub.networkMapCache.notaryIdentities[0]
 
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
             // Generate an unsigned transaction.
             val txCommand = Command(TrancheContract.Commands.Issue(), listOf(trancheState.agent.owningKey))
             val txCommandBalance = Command(TrancheBalanceContract.Commands.Issue(), listOf(trancheBalanceState.agent.owningKey))
-            val unsignedTx = TransactionType.General.Builder(notary).withItems(trancheState, txCommand, trancheBalanceState, txCommandBalance)
+            val txBuilder = TransactionBuilder(notary)
+                    .withItems(StateAndContract(trancheState, TRANCHE_CONTRACT_ID), txCommand, StateAndContract(trancheBalanceState, TRANCHEBALANCE_CONTRACT_ID), txCommandBalance)
             //val signers = listOf(trancheState.agent.owningKey, notary.owningKey)
 
             // Stage 2.
             progressTracker.currentStep = VERIFYING_TRANSACTION
             // Verify that the transaction is valid.
-            unsignedTx.toWireTransaction().toLedgerTransaction(serviceHub).verify()
+            txBuilder.verify(serviceHub)
 
             // Stage 3.
             progressTracker.currentStep = SIGNING_TRANSACTION
-            val partSignedTx = serviceHub.signInitialTransaction(unsignedTx)
+            val partSignedTx = serviceHub.signInitialTransaction(txBuilder)
 
             // Stage 4.
             progressTracker.currentStep = FINALIZING_TRANSACTION
-            return subFlow(FinalityFlow(partSignedTx)).single()
+            return subFlow(FinalityFlow(partSignedTx))
         }
     }
 

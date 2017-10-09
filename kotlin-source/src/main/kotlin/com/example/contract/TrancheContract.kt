@@ -2,11 +2,19 @@ package com.example.contract
 
 import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
-import net.corda.core.contracts.*
-import net.corda.core.crypto.SecureHash
+import net.corda.core.contracts.CommandData
+import net.corda.core.contracts.Contract
+import net.corda.core.contracts.requireSingleCommand
+import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 
 open class TrancheContract : Contract {
+    companion object {
+        @JvmStatic
+        val TRANCHE_CONTRACT_ID = "com.example.contract.TrancheContract"
+    }
+
+
     /**
      * The verify() function of all the states' contracts must not throw an exception for a transaction to be
      * considered valid.
@@ -39,8 +47,8 @@ open class TrancheContract : Contract {
                     val out1 = tx.outputsOfType<TrancheState>()[0]
                     val out2 = tx.outputsOfType<TrancheState>()[1]
                     "Owner must not be changed for remained tranche." using (input.owner == out1.owner)
-                    "Owner must be changed when transfer a tranche." using(input.owner != out2.owner)
-                    "The tranche's available amount must be non-negative." using (out1.amount.quantity >= 0 && out2.amount.quantity >=0)
+                    "Owner must be changed when transfer a tranche." using (input.owner != out2.owner)
+                    "The tranche's available amount must be non-negative." using (out1.amount.quantity >= 0 && out2.amount.quantity >= 0)
                 }
             }
         }
@@ -51,10 +59,8 @@ open class TrancheContract : Contract {
      * This contract implements commands: Issue, Move.
      */
     interface Commands : CommandData {
-        class Issue : TypeOnlyCommandData(), Commands
-        class Move : TypeOnlyCommandData(), Commands
+        class Issue : Commands
+        class Move : Commands
     }
 
-    /** This is a reference to the underlying legal contract template and associated parameters. */
-    override val legalContractReference: SecureHash = SecureHash.sha256("tranche contract template and params")
 }

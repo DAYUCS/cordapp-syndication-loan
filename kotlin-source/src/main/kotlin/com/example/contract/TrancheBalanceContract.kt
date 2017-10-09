@@ -1,11 +1,18 @@
 package com.example.contract
 
 import com.example.state.TrancheBalanceState
-import net.corda.core.contracts.*
-import net.corda.core.crypto.SecureHash
+import net.corda.core.contracts.CommandData
+import net.corda.core.contracts.Contract
+import net.corda.core.contracts.requireSingleCommand
+import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 
 open class TrancheBalanceContract : Contract {
+    companion object {
+        @JvmStatic
+        val TRANCHEBALANCE_CONTRACT_ID = "com.example.contract.TrancheBalanceContract"
+    }
+
     /**
      * The verify() function of all the states' contracts must not throw an exception for a transaction to be
      * considered valid.
@@ -47,10 +54,8 @@ open class TrancheBalanceContract : Contract {
      * This contract implements commands: Issue, Move.
      */
     interface Commands : CommandData {
-        class Issue : TypeOnlyCommandData(), Commands
-        class Move : TypeOnlyCommandData(), Commands
+        class Issue : Commands
+        class Move : Commands
     }
 
-    /** This is a reference to the underlying legal contract template and associated parameters. */
-    override val legalContractReference: SecureHash = SecureHash.sha256("tranche balance contract template and params")
 }

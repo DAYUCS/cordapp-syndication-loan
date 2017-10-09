@@ -2,17 +2,20 @@ package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.example.contract.TrancheBalanceContract
+import com.example.contract.TrancheBalanceContract.Companion.TRANCHEBALANCE_CONTRACT_ID
 import com.example.contract.TrancheContract
+import com.example.contract.TrancheContract.Companion.TRANCHE_CONTRACT_ID
 import com.example.state.TrancheBalanceState
 import com.example.state.TrancheState
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateRef
-import net.corda.core.contracts.TransactionType
+import net.corda.core.contracts.TransactionState
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
+import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import java.math.BigDecimal
 
@@ -54,39 +57,38 @@ object TransferFlow {
         @Suspendable
         override fun call(): SignedTransaction {
             // Obtain a reference to the notary we want to use.
-            val notary = serviceHub.networkMapCache.notaryNodes.single().notaryIdentity
-
-            val builder = TransactionType.General.Builder(notary)
+            val notary = serviceHub.networkMapCache.notaryIdentities[0]
+            val builder = TransactionBuilder(notary)
 
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
 
             // Get TrancheState
-            val blStateAndRefs = serviceHub.vaultQueryService.queryBy<TrancheState>()
+            val trancheStateAndRefs = serviceHub.vaultService.queryBy<TrancheState>()
                     .states.associateBy({ it.ref }, { it })
 
-            val blStateAndRef = blStateAndRefs[stateRef] ?: throw IllegalArgumentException("TrancheState with StateRef $stateRef not found.")
-            val inputBL = blStateAndRef.state.data
-            val referenceNumber = inputBL.tranche.referenceNumber
+            val trancheStateAndRef = trancheStateAndRefs[stateRef] ?: throw IllegalArgumentException("TrancheState with StateRef $stateRef not found.")
+            val inputTranche = trancheStateAndRef.state.data
+            val referenceNumber = inputTranche.tranche.referenceNumber
             val movement = Amount(
                     moveAmount.toLong(),
                     BigDecimal(100),
-                    inputBL.totalAmount.token
+                    inputTranche.totalAmount.token
             )
 
-            require(serviceHub.myInfo.legalIdentity == inputBL.agent) { "Tranche transfer can only be initiated by the agent bank." }
+            require(serviceHub.myInfo.legalIdentities.first() == inputTranche.agent) { "Tranche transfer can only be initiated by the agent bank." }
 
             // Get TrancheBalanceState
-            val blBalanceStateAndRefs = serviceHub.vaultQueryService.queryBy<TrancheBalanceState>()
+            val trancheBalanceStateAndRefs = serviceHub.vaultService.queryBy<TrancheBalanceState>()
                     .states.associateBy({ it.ref }, { it })
                     .filterValues { it.state.data.tranche.referenceNumber.contentEquals(referenceNumber) }
 
-            logger.info("Balance Records Number: ".plus(blBalanceStateAndRefs.size))
+            logger.info("Balance Records Number: ".plus(trancheBalanceStateAndRefs.size))
             logger.info("Target Bank:".plus(newOwner.owningKey))
-            logger.info("Agent Bank:".plus(inputBL.agent.owningKey))
+            logger.info("Agent Bank:".plus(inputTranche.agent.owningKey))
 
             var targetBalanceExist = false
-            for (item in blBalanceStateAndRefs) {
+            for (item in trancheBalanceStateAndRefs) {
                 logger.info("Item Owner:".plus(item.value.state.data.owner.owningKey))
                 if (item.value.state.data.owner.owningKey == newOwner.owningKey) {
                     builder.addInputState(item.value)
@@ -97,8 +99,8 @@ object TransferFlow {
                             item.value.state.data.agent,
                             item.value.state.data.owner
                     )
-                    builder.addOutputState(trancheBalanceState)
-                } else if (item.value.state.data.owner.owningKey == inputBL.agent.owningKey) {
+                    builder.addOutputState(TransactionState(trancheBalanceState, TRANCHEBALANCE_CONTRACT_ID, notary))
+                } else if (item.value.state.data.owner.owningKey == inputTranche.agent.owningKey) {
                     builder.addInputState(item.value)
                     val trancheBalanceState = TrancheBalanceState(
                             item.value.state.data.tranche,
@@ -106,37 +108,37 @@ object TransferFlow {
                             item.value.state.data.agent,
                             item.value.state.data.owner
                     )
-                    builder.addOutputState(trancheBalanceState)
+                    builder.addOutputState(TransactionState(trancheBalanceState, TRANCHEBALANCE_CONTRACT_ID, notary))
                 }
             }
 
             if (!targetBalanceExist) {
                 val trancheBalanceState = TrancheBalanceState(
-                        inputBL.tranche,
+                        inputTranche.tranche,
                         movement,
-                        inputBL.agent,
+                        inputTranche.agent,
                         newOwner
                 )
-                builder.addOutputState(trancheBalanceState)
+                builder.addOutputState(TransactionState(trancheBalanceState, TRANCHEBALANCE_CONTRACT_ID, notary))
             }
 
-            val remainedBL = inputBL.move(inputBL.amount.minus(movement), inputBL.agent)
+            val remainedTranche = inputTranche.withNewOwnerAndAmount(inputTranche.amount.minus(movement), inputTranche.agent)
 
-            val outputBL = inputBL.move(movement, newOwner)
+            val outputTranche = inputTranche.withNewOwnerAndAmount(movement, newOwner)
 
-            val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputBL.agent.owningKey, newOwner.owningKey))
-            val txCommandBalance = Command(TrancheBalanceContract.Commands.Move(), listOf(inputBL.agent.owningKey, newOwner.owningKey))
-            builder.addInputState(blStateAndRef)
+            val txCommand = Command(TrancheContract.Commands.Move(), listOf(inputTranche.agent.owningKey, newOwner.owningKey))
+            val txCommandBalance = Command(TrancheBalanceContract.Commands.Move(), listOf(inputTranche.agent.owningKey, newOwner.owningKey))
+            builder.addInputState(trancheStateAndRef)
             builder.addCommand(txCommand)
             builder.addCommand(txCommandBalance)
-            builder.addOutputState(remainedBL)
-            builder.addOutputState(outputBL)
+            builder.addOutputState(TransactionState(remainedTranche, TRANCHE_CONTRACT_ID, notary))
+            builder.addOutputState(TransactionState(outputTranche, TRANCHE_CONTRACT_ID, notary))
 
             // Stage 2.
             progressTracker.currentStep = VERIFYING_TRANSACTION
             // Verify that the transaction is valid.
             //unsignedTx.toWireTransaction().toLedgerTransaction(serviceHub).verify()
-            builder.toWireTransaction().toLedgerTransaction(serviceHub).verify()
+            builder.verify(serviceHub)
 
             // Stage 3.
             progressTracker.currentStep = SIGNING_TRANSACTION
@@ -145,21 +147,22 @@ object TransferFlow {
 
             // Stage 4. Collect signature from parties and add it to the transaction.
             // This also verifies the transaction and checks the signatures.
+            val otherPartyFlow = initiateFlow(newOwner)
             progressTracker.currentStep = COLLECTING
             //val stx = subFlow(CollectSignaturesFlow(partSignedTx, COLLECTING.childProgressTracker()))
-            val stx = subFlow(CollectSignaturesFlow(ptx))
+            val stx = subFlow(CollectSignaturesFlow(ptx, setOf(otherPartyFlow), COLLECTING.childProgressTracker()))
 
             // Stage 5. Notarise and record, the transaction in our vaults.
             progressTracker.currentStep = FINALISING
-            return subFlow(FinalityFlow(stx, setOf(inputBL.agent, newOwner))).single()
+            return subFlow(FinalityFlow(stx, FINALISING.childProgressTracker()))
         }
     }
 
-    @InitiatedBy(TransferFlow.Initiator::class)
-    class Responder(val otherParty: Party) : FlowLogic<SignedTransaction>() {
+    @InitiatedBy(Initiator::class)
+    class Responder(val otherPartyFlow: FlowSession) : FlowLogic<SignedTransaction>() {
         @Suspendable
         override fun call(): SignedTransaction {
-            val flow = object : SignTransactionFlow(otherParty) {
+            val flow = object : SignTransactionFlow(otherPartyFlow) {
                 @Suspendable
                 override fun checkTransaction(stx: SignedTransaction) {
                     // TODO: Add some checking.
